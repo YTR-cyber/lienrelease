@@ -1,18 +1,18 @@
 {
   "totalIn": 9000,
-  "totalOut": 4954,
-  "waitFin": 75,
-  "waitTre": 420,
-  "waitMgr": 194,
-  "monthIn": 1320,
-  "cancel": 2464,
-  "wait2": 698,
-  "time8m": 24,
-  "time1m": 13,
-  "timeFin": 5,
-  "timeTre": 13,
-  "timeMgr": 5,
-  "payCount": 52,
+  "totalOut": 100,
+  "waitFin": 101,
+  "waitTre": 200,
+  "waitMgr": 300,
+  "monthIn": 400,
+  "cancel": 500,
+  "wait2": 600,
+  "time8m": 700,
+  "time1m": 800,
+  "timeFin": 900,
+  "timeTre": 1000,
+  "timeMgr": 2000,
+  "payCount": 3000,
   "payAmount": 23103080000,
   "chart": {
     "labels": ["فروردین", "اردیبهشت", "خرداد", "تیر", "مرداد", "شهریور", "مهر", "آبان"],
@@ -21,3 +21,4 @@
   }
 
 }
+
