@@ -309,7 +309,7 @@
       </div>
     </div>
     <div class="header-meta">
-      <div class="pill"><span class="dot"></span> به روز رسانی ماهانه </div>
+      <div class="pill"><span class="dot"></span> متصل به دیتابیس JSON</div>
       <div class="pill">📅 دوره: ۸ ماه اخیر</div>
       <div class="pill">🏢 مدیریت مالی و خزانه‌داری</div>
     </div>
@@ -441,19 +441,51 @@
     </div>
   </div>
 
-  <footer>داشبورد مدیریتی فک رهن•</footer>
+  <footer>  </footer>
 </div>
 
 <script>
 // --- Logic ---
 let chartInstance = null;
-const DATA_FILE = 'data.json'; // نام فایل JSON در گیت‌هاب
+const DATA_FILE = './data.json'; 
 
+// تابع فرمت‌دهی اعداد به فارسی
 function toFa(num) {
   if (isNaN(num)) return num;
   return Number(num).toLocaleString('fa-IR');
 }
 
+// تابع انیمیشن شمارش
+function animateCount(el, target, isAmount = false) {
+  // اگر المان قبلاً پر شده، انیمیشن را ریست کن
+  const start = performance.now();
+  const dur = 1500; // مدت زمان انیمیشن
+  const from = 0;
+
+  function step(t) {
+    const p = Math.min((t - start) / dur, 1);
+    const eased = 1 - Math.pow(1 - p, 3); // نرم‌سازی حرکت
+    const current = Math.floor(from + (target - from) * eased);
+    
+    if (isAmount) {
+      el.innerHTML = current.toLocaleString('fa-IR') + ' <small>ریال</small>';
+    } else {
+      el.textContent = current.toLocaleString('fa-IR');
+    }
+    
+    if (p < 1) requestAnimationFrame(step);
+    else {
+      if (isAmount) {
+        el.innerHTML = target.toLocaleString('fa-IR') + ' <small>ریال</small>';
+      } else {
+        el.textContent = target.toLocaleString('fa-IR');
+      }
+    }
+  }
+  requestAnimationFrame(step);
+}
+
+// خواندن داده از فایل JSON
 async function loadData() {
   try {
     const response = await fetch(DATA_FILE);
@@ -461,7 +493,6 @@ async function loadData() {
     return await response.json();
   } catch (error) {
     console.error('خطا در خواندن فایل JSON، استفاده از داده‌های پیش‌فرض:', error);
-    // اگر فایل پیدا نشد، از داده‌های پیش‌فرض استفاده کن
     return {
       totalIn: 8805, totalOut: 4954, waitFin: 75, waitTre: 420, waitMgr: 194,
       monthIn: 1320, cancel: 2464, wait2: 698, time8m: 24, time1m: 13,
@@ -474,61 +505,53 @@ async function loadData() {
     };
   }
 }
-function animateCount(el, target, suffix = '') {
-  const start = performance.now();
-  const dur = 1200; // مدت زمان انیمیشن (میلی‌ثانیه)
-  const from = 0;
-  // اگر عدد اعشاری بود، پشتیبانی می‌کند
-  const isFloat = target % 1 !== 0; 
-  
-  function step(t) {
-    const p = Math.min((t - start) / dur, 1);
-    const eased = 1 - Math.pow(1 - p, 3); // تابع نرم‌سازی
-    const current = Math.floor(from + (target - from) * eased);
-    el.textContent = current.toLocaleString('fa-IR') + suffix;
-    if (p < 1) requestAnimationFrame(step);
-    else el.textContent = target.toLocaleString('fa-IR') + suffix;
-  }
-  requestAnimationFrame(step);
-}
+
+// به‌روزرسانی UI با انیمیشن
 function updateDashboard(data) {
-  // KPI
-  animateCount(document.getElementById('val-total-in').textContent = toFa(data.totalIn));
-  animateCount(document.getElementById('val-total-out').textContent = toFa(data.totalOut));
-  animateCount(document.getElementById('val-wait-fin').textContent = toFa(data.waitFin));
-  animateCount(document.getElementById('val-wait-tre').textContent = toFa(data.waitTre));
-  animateCount(document.getElementById('val-wait-mgr').textContent = toFa(data.waitMgr));
-  animateCount(document.getElementById('val-month-in').textContent = toFa(data.monthIn));
-  animateCount(document.getElementById('val-cancel').textContent = toFa(data.cancel));
-  animateCount(document.getElementById('val-pay-count').textContent = toFa(data.payCount));
-  animateCount(document.getElementById('val-pay-amount').innerHTML = toFa(data.payAmount)) + ' <small>ریال</small>';
+  // KPI Hero & Row (با انیمیشن)
+  animateCount(document.getElementById('val-total-in'), data.totalIn);
+  animateCount(document.getElementById('val-total-out'), data.totalOut);
+  animateCount(document.getElementById('val-wait-fin'), data.waitFin);
+  animateCount(document.getElementById('val-wait-tre'), data.waitTre);
+  animateCount(document.getElementById('val-wait-mgr'), data.waitMgr);
+  animateCount(document.getElementById('val-month-in'), data.monthIn);
+  animateCount(document.getElementById('val-cancel'), data.cancel);
+  animateCount(document.getElementById('val-pay-count'), data.payCount);
+  
+  // مبلغ پرداخت (با انیمیشن و حفظ تگ small)
+  animateCount(document.getElementById('val-pay-amount'), data.payAmount, true);
 
-  // Time
-  document.getElementById('val-time-8m').textContent = toFa(data.time8m);
-  document.getElementById('val-time-1m').textContent = toFa(data.time1m);
-  document.getElementById('val-time-fin').textContent = toFa(data.timeFin);
-  document.getElementById('val-time-tre').textContent = toFa(data.timeTre);
-  document.getElementById('val-time-mgr').textContent = toFa(data.timeMgr);
+  // Time Card (با انیمیشن روی عدد داخل span)
+  animateCount(document.getElementById('val-time-8m'), data.time8m);
+  animateCount(document.getElementById('val-time-1m'), data.time1m);
+  animateCount(document.getElementById('val-time-fin'), data.timeFin);
+  animateCount(document.getElementById('val-time-tre'), data.timeTre);
+  animateCount(document.getElementById('val-time-mgr'), data.timeMgr);
 
-  // Flow
+  // Flow (با انیمیشن)
   const total = data.totalIn || 1;
   const progSum = data.waitFin + data.waitTre + data.waitMgr;
-  document.getElementById('flow-out-val').textContent = toFa(data.totalOut);
+  
+  animateCount(document.getElementById('flow-out-val'), data.totalOut);
   document.getElementById('flow-out-pct').textContent = ((data.totalOut/total)*100).toFixed(1)+'٪';
-  document.getElementById('flow-prog-val').textContent = toFa(progSum);
+  
+  animateCount(document.getElementById('flow-prog-val'), progSum);
   document.getElementById('flow-prog-pct').textContent = ((progSum/total)*100).toFixed(1)+'٪';
-  document.getElementById('flow-cancel-val').textContent = toFa(data.cancel);
+  
+  animateCount(document.getElementById('flow-cancel-val'), data.cancel);
   document.getElementById('flow-cancel-pct').textContent = ((data.cancel/total)*100).toFixed(1)+'٪';
-  document.getElementById('flow-wait-val').textContent = toFa(data.wait2);
+  
+  animateCount(document.getElementById('flow-wait-val'), data.wait2);
   document.getElementById('flow-wait-pct').textContent = ((data.wait2/total)*100).toFixed(1)+'٪';
+  
   document.getElementById('flow-total-sub').textContent = `(${toFa(data.totalOut)} + ${toFa(progSum)} + ${toFa(data.cancel)} + ${toFa(data.wait2)} = ${toFa(data.totalIn)})`;
 
-  document.getElementById('flow-fin-val').textContent = toFa(data.waitFin);
-  document.getElementById('flow-tre-val').textContent = toFa(data.waitTre);
-  document.getElementById('flow-mgr-val').textContent = toFa(data.waitMgr);
-  document.getElementById('flow-wait2-val').textContent = toFa(data.wait2);
+  animateCount(document.getElementById('flow-fin-val'), data.waitFin);
+  animateCount(document.getElementById('flow-tre-val'), data.waitTre);
+  animateCount(document.getElementById('flow-mgr-val'), data.waitMgr);
+  animateCount(document.getElementById('flow-wait2-val'), data.wait2);
 
-  // Table
+  // Table (بدون انیمیشن، مستقیم)
   document.getElementById('tbl-total-in').textContent = toFa(data.totalIn);
   document.getElementById('tbl-total-out').textContent = toFa(data.totalOut);
   document.getElementById('tbl-wait-fin').textContent = toFa(data.waitFin);
@@ -618,9 +641,4 @@ window.addEventListener('load', async () => {
 });
 </script>
 </body>
-
 </html>
-
-
-
-
