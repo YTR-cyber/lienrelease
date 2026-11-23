@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>داشبورد پایش درخواست‌های فک رهن</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
   :root{
@@ -310,7 +309,7 @@
       </div>
     </div>
     <div class="header-meta">
-      <div class="pill"><span class="dot"></span> متصل به دیتابیس اکسل</div>
+      <div class="pill"><span class="dot"></span> متصل به دیتابیس JSON</div>
       <div class="pill">📅 دوره: ۸ ماه اخیر</div>
       <div class="pill">🏢 مدیریت مالی و خزانه‌داری</div>
     </div>
@@ -442,66 +441,31 @@
     </div>
   </div>
 
-  <footer>داشبورد مدیریتی فک رهن • داده‌ها از فایل اکسل خوانده می‌شوند</footer>
+  <footer>داشبورد مدیریتی فک رهن • داده‌ها از فایل JSON خوانده می‌شوند</footer>
 </div>
 
 <script>
-// --- SheetJS Logic ---
+// --- Logic ---
 let chartInstance = null;
-const EXCEL_FILE = 'data.xlsx'; // نام فایل اکسل در گیت‌هاب
+const DATA_FILE = 'data.json'; // نام فایل JSON در گیت‌هاب
 
-// تابع کمکی برای تبدیل اعداد به فارسی
 function toFa(num) {
   if (isNaN(num)) return num;
   return Number(num).toLocaleString('fa-IR');
 }
 
-// خواندن داده از فایل اکسل
-async function loadDataFromExcel() {
+async function loadData() {
   try {
-    const response = await fetch(EXCEL_FILE);
+    const response = await fetch(DATA_FILE);
     if (!response.ok) throw new Error('File not found');
-    const arrayBuffer = await response.arrayBuffer();
-    const workbook = XLSX.read(arrayBuffer, { type: 'array' });
-    
-    // فرض بر این است که داده‌ها در شیت اول هستند
-    const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-    
-    // تبدیل شیت به آرایه دو بعدی
-    const rows = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
-    
-    // ساخت آبجکت داده از روی سطرها
-    // ساختار فرضی: هر سطر شامل [کلید, مقدار]
-    const data = {};
-    rows.forEach(row => {
-      if (row.length >= 2) {
-        data[row[0]] = row[1]; // مثلا data['totalIn'] = 8805
-      }
-    });
-
-    // داده‌های نمودار (فرض: سطرهای 15 به بعد)
-    // در فایل اکسل واقعی، ساختار را می‌توانید مطابق نیاز تغییر دهید
-    const chartData = {
-        labels: ['فروردین', 'اردیبهشت', 'خرداد', 'تیر', 'مرداد', 'شهریور', 'مهر', 'آبان'],
-        inData: [748, 1369, 1284, 790, 1126, 992, 1175, 1320],
-        outData: [527, 936, 797, 467, 701, 577, 574, 375]
-    };
-    
-    // اگر در اکسل داده نمودار دارید، اینجا جایگزین کنید
-    // if(data['chart_in_0']) chartData.inData[0] = data['chart_in_0'];
-    // ...
-
-    return { metrics: data, chart: chartData };
-
+    return await response.json();
   } catch (error) {
-    console.error('خطا در خواندن اکسل، استفاده از داده‌های پیش‌فرض:', error);
-    // داده‌های پیش‌فرض در صورت عدم وجود فایل
+    console.error('خطا در خواندن فایل JSON، استفاده از داده‌های پیش‌فرض:', error);
+    // اگر فایل پیدا نشد، از داده‌های پیش‌فرض استفاده کن
     return {
-      metrics: {
-        totalIn: 8805, totalOut: 4954, waitFin: 75, waitTre: 420, waitMgr: 194,
-        monthIn: 1320, cancel: 2464, wait2: 698, time8m: 24, time1m: 13,
-        timeFin: 5, timeTre: 13, timeMgr: 5, payCount: 52, payAmount: 23103080000
-      },
+      totalIn: 8805, totalOut: 4954, waitFin: 75, waitTre: 420, waitMgr: 194,
+      monthIn: 1320, cancel: 2464, wait2: 698, time8m: 24, time1m: 13,
+      timeFin: 5, timeTre: 13, timeMgr: 5, payCount: 52, payAmount: 23103080000,
       chart: {
         labels: ['فروردین', 'اردیبهشت', 'خرداد', 'تیر', 'مرداد', 'شهریور', 'مهر', 'آبان'],
         inData: [748, 1369, 1284, 790, 1126, 992, 1175, 1320],
@@ -511,67 +475,63 @@ async function loadDataFromExcel() {
   }
 }
 
-// به‌روزرسانی UI
 function updateDashboard(data) {
-  const m = data.metrics;
-  const c = data.chart;
-
   // KPI
-  document.getElementById('val-total-in').textContent = toFa(m.totalIn);
-  document.getElementById('val-total-out').textContent = toFa(m.totalOut);
-  document.getElementById('val-wait-fin').textContent = toFa(m.waitFin);
-  document.getElementById('val-wait-tre').textContent = toFa(m.waitTre);
-  document.getElementById('val-wait-mgr').textContent = toFa(m.waitMgr);
-  document.getElementById('val-month-in').textContent = toFa(m.monthIn);
-  document.getElementById('val-cancel').textContent = toFa(m.cancel);
-  document.getElementById('val-pay-count').textContent = toFa(m.payCount);
-  document.getElementById('val-pay-amount').innerHTML = toFa(m.payAmount) + ' <small>ریال</small>';
+  document.getElementById('val-total-in').textContent = toFa(data.totalIn);
+  document.getElementById('val-total-out').textContent = toFa(data.totalOut);
+  document.getElementById('val-wait-fin').textContent = toFa(data.waitFin);
+  document.getElementById('val-wait-tre').textContent = toFa(data.waitTre);
+  document.getElementById('val-wait-mgr').textContent = toFa(data.waitMgr);
+  document.getElementById('val-month-in').textContent = toFa(data.monthIn);
+  document.getElementById('val-cancel').textContent = toFa(data.cancel);
+  document.getElementById('val-pay-count').textContent = toFa(data.payCount);
+  document.getElementById('val-pay-amount').innerHTML = toFa(data.payAmount) + ' <small>ریال</small>';
 
   // Time
-  document.getElementById('val-time-8m').textContent = toFa(m.time8m);
-  document.getElementById('val-time-1m').textContent = toFa(m.time1m);
-  document.getElementById('val-time-fin').textContent = toFa(m.timeFin);
-  document.getElementById('val-time-tre').textContent = toFa(m.timeTre);
-  document.getElementById('val-time-mgr').textContent = toFa(m.timeMgr);
+  document.getElementById('val-time-8m').textContent = toFa(data.time8m);
+  document.getElementById('val-time-1m').textContent = toFa(data.time1m);
+  document.getElementById('val-time-fin').textContent = toFa(data.timeFin);
+  document.getElementById('val-time-tre').textContent = toFa(data.timeTre);
+  document.getElementById('val-time-mgr').textContent = toFa(data.timeMgr);
 
   // Flow
-  const total = m.totalIn || 1;
-  const progSum = m.waitFin + m.waitTre + m.waitMgr;
-  document.getElementById('flow-out-val').textContent = toFa(m.totalOut);
-  document.getElementById('flow-out-pct').textContent = ((m.totalOut/total)*100).toFixed(1)+'٪';
+  const total = data.totalIn || 1;
+  const progSum = data.waitFin + data.waitTre + data.waitMgr;
+  document.getElementById('flow-out-val').textContent = toFa(data.totalOut);
+  document.getElementById('flow-out-pct').textContent = ((data.totalOut/total)*100).toFixed(1)+'٪';
   document.getElementById('flow-prog-val').textContent = toFa(progSum);
   document.getElementById('flow-prog-pct').textContent = ((progSum/total)*100).toFixed(1)+'٪';
-  document.getElementById('flow-cancel-val').textContent = toFa(m.cancel);
-  document.getElementById('flow-cancel-pct').textContent = ((m.cancel/total)*100).toFixed(1)+'٪';
-  document.getElementById('flow-wait-val').textContent = toFa(m.wait2);
-  document.getElementById('flow-wait-pct').textContent = ((m.wait2/total)*100).toFixed(1)+'٪';
-  document.getElementById('flow-total-sub').textContent = `(${toFa(m.totalOut)} + ${toFa(progSum)} + ${toFa(m.cancel)} + ${toFa(m.wait2)} = ${toFa(m.totalIn)})`;
+  document.getElementById('flow-cancel-val').textContent = toFa(data.cancel);
+  document.getElementById('flow-cancel-pct').textContent = ((data.cancel/total)*100).toFixed(1)+'٪';
+  document.getElementById('flow-wait-val').textContent = toFa(data.wait2);
+  document.getElementById('flow-wait-pct').textContent = ((data.wait2/total)*100).toFixed(1)+'٪';
+  document.getElementById('flow-total-sub').textContent = `(${toFa(data.totalOut)} + ${toFa(progSum)} + ${toFa(data.cancel)} + ${toFa(data.wait2)} = ${toFa(data.totalIn)})`;
 
-  document.getElementById('flow-fin-val').textContent = toFa(m.waitFin);
-  document.getElementById('flow-tre-val').textContent = toFa(m.waitTre);
-  document.getElementById('flow-mgr-val').textContent = toFa(m.waitMgr);
-  document.getElementById('flow-wait2-val').textContent = toFa(m.wait2);
+  document.getElementById('flow-fin-val').textContent = toFa(data.waitFin);
+  document.getElementById('flow-tre-val').textContent = toFa(data.waitTre);
+  document.getElementById('flow-mgr-val').textContent = toFa(data.waitMgr);
+  document.getElementById('flow-wait2-val').textContent = toFa(data.wait2);
 
   // Table
-  document.getElementById('tbl-total-in').textContent = toFa(m.totalIn);
-  document.getElementById('tbl-total-out').textContent = toFa(m.totalOut);
-  document.getElementById('tbl-wait-fin').textContent = toFa(m.waitFin);
-  document.getElementById('tbl-wait-tre').textContent = toFa(m.waitTre);
-  document.getElementById('tbl-wait-mgr').textContent = toFa(m.waitMgr);
-  document.getElementById('tbl-month-in').textContent = toFa(m.monthIn);
-  document.getElementById('tbl-cancel').textContent = toFa(m.cancel);
-  document.getElementById('tbl-wait2').textContent = toFa(m.wait2);
-  document.getElementById('tbl-time-8m').textContent = toFa(m.time8m);
-  document.getElementById('tbl-time-1m').textContent = toFa(m.time1m);
-  document.getElementById('tbl-time-fin').textContent = toFa(m.timeFin);
-  document.getElementById('tbl-time-tre').textContent = toFa(m.timeTre);
-  document.getElementById('tbl-time-mgr').textContent = toFa(m.timeMgr);
-  document.getElementById('tbl-pay-count').textContent = toFa(m.payCount);
-  document.getElementById('tbl-pay-amount').textContent = toFa(m.payAmount);
+  document.getElementById('tbl-total-in').textContent = toFa(data.totalIn);
+  document.getElementById('tbl-total-out').textContent = toFa(data.totalOut);
+  document.getElementById('tbl-wait-fin').textContent = toFa(data.waitFin);
+  document.getElementById('tbl-wait-tre').textContent = toFa(data.waitTre);
+  document.getElementById('tbl-wait-mgr').textContent = toFa(data.waitMgr);
+  document.getElementById('tbl-month-in').textContent = toFa(data.monthIn);
+  document.getElementById('tbl-cancel').textContent = toFa(data.cancel);
+  document.getElementById('tbl-wait2').textContent = toFa(data.wait2);
+  document.getElementById('tbl-time-8m').textContent = toFa(data.time8m);
+  document.getElementById('tbl-time-1m').textContent = toFa(data.time1m);
+  document.getElementById('tbl-time-fin').textContent = toFa(data.timeFin);
+  document.getElementById('tbl-time-tre').textContent = toFa(data.timeTre);
+  document.getElementById('tbl-time-mgr').textContent = toFa(data.timeMgr);
+  document.getElementById('tbl-pay-count').textContent = toFa(data.payCount);
+  document.getElementById('tbl-pay-amount').textContent = toFa(data.payAmount);
 
   // Chart
-  if (!chartInstance) initChart(c);
-  else updateChart(c);
+  if (!chartInstance) initChart(data.chart);
+  else updateChart(data.chart);
 }
 
 function initChart(data) {
@@ -614,12 +574,11 @@ function updateChart(data) {
   chartInstance.update();
 }
 
-// --- Print Fix: Convert Chart to Image ---
+// --- Print Fix ---
 window.onbeforeprint = () => {
   if (!chartInstance) return;
   const canvas = chartInstance.canvas;
   const parent = canvas.parentNode;
-  // ذخیره وضعیت قبلی
   canvas.style.display = 'none';
   const img = new Image();
   img.src = chartInstance.toBase64Image();
@@ -638,7 +597,7 @@ window.onafterprint = () => {
 
 // --- Init ---
 window.addEventListener('load', async () => {
-  const data = await loadDataFromExcel();
+  const data = await loadData();
   updateDashboard(data);
 });
 </script>
