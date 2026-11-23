@@ -474,18 +474,34 @@ async function loadData() {
     };
   }
 }
-
+function animateCount(el, target, suffix = '') {
+  const start = performance.now();
+  const dur = 1200; // مدت زمان انیمیشن (میلی‌ثانیه)
+  const from = 0;
+  // اگر عدد اعشاری بود، پشتیبانی می‌کند
+  const isFloat = target % 1 !== 0; 
+  
+  function step(t) {
+    const p = Math.min((t - start) / dur, 1);
+    const eased = 1 - Math.pow(1 - p, 3); // تابع نرم‌سازی
+    const current = Math.floor(from + (target - from) * eased);
+    el.textContent = current.toLocaleString('fa-IR') + suffix;
+    if (p < 1) requestAnimationFrame(step);
+    else el.textContent = target.toLocaleString('fa-IR') + suffix;
+  }
+  requestAnimationFrame(step);
+}
 function updateDashboard(data) {
   // KPI
-  document.getElementById('val-total-in').textContent = toFa(data.totalIn);
-  document.getElementById('val-total-out').textContent = toFa(data.totalOut);
-  document.getElementById('val-wait-fin').textContent = toFa(data.waitFin);
-  document.getElementById('val-wait-tre').textContent = toFa(data.waitTre);
-  document.getElementById('val-wait-mgr').textContent = toFa(data.waitMgr);
-  document.getElementById('val-month-in').textContent = toFa(data.monthIn);
-  document.getElementById('val-cancel').textContent = toFa(data.cancel);
-  document.getElementById('val-pay-count').textContent = toFa(data.payCount);
-  document.getElementById('val-pay-amount').innerHTML = toFa(data.payAmount) + ' <small>ریال</small>';
+  animateCount(document.getElementById('val-total-in').textContent = toFa(data.totalIn));
+  animateCount(document.getElementById('val-total-out').textContent = toFa(data.totalOut));
+  animateCount(document.getElementById('val-wait-fin').textContent = toFa(data.waitFin));
+  animateCount(document.getElementById('val-wait-tre').textContent = toFa(data.waitTre));
+  animateCount(document.getElementById('val-wait-mgr').textContent = toFa(data.waitMgr));
+  animateCount(document.getElementById('val-month-in').textContent = toFa(data.monthIn));
+  animateCount(document.getElementById('val-cancel').textContent = toFa(data.cancel));
+  animateCount(document.getElementById('val-pay-count').textContent = toFa(data.payCount));
+  animateCount(document.getElementById('val-pay-amount').innerHTML = toFa(data.payAmount)) + ' <small>ریال</small>';
 
   // Time
   document.getElementById('val-time-8m').textContent = toFa(data.time8m);
@@ -604,4 +620,5 @@ window.addEventListener('load', async () => {
 </body>
 
 </html>
+
 
